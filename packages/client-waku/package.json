@@ -1,0 +1,38 @@
+{
+    "name": "@elizaos/client-waku",
+    "version": "0.1.0",
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "import": {
+                "@elizaos/source": "./src/index.ts",
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "dependencies": {
+        "@elizaos/core": "workspace:*",
+        "@libp2p/bootstrap": "^11.0.16",
+        "@libp2p/tcp": "^10.0.15",
+        "@waku/sdk": "0.0.30-9f1d8ca.0",
+        "bs58": "^6.0.0",
+        "protobufjs": "^7.4.0",
+        "tweetnacl": "^1.0.3"
+    },
+    "devDependencies": {
+        "tsup": "8.3.5"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint --fix  --cache ."
+    }
+}
