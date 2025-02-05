@@ -47,7 +47,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: chrom-ar/eliza-eth-global:latest
+          tags: ghcr.io/chrom-ar/eliza-eth-global:latest
       
       # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. It increases supply chain security for people who consume the image. For more information, see [Using artifact attestations to establish provenance for builds](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
       - name: Generate artifact attestation
@@ -62,4 +62,4 @@ jobs:
         run: |
           docker buildx imagetools create \
             --tag ghcr.io/chrom-ar/eliza-eth-global:latest \
-            chrom-ar/eliza-eth-global:latest
+            ghcr.io/chrom-ar/eliza-eth-global:latest
