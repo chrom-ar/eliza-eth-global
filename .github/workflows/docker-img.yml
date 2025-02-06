@@ -1,5 +1,5 @@
 #
-name: Create and publish a Docker image
+name: Create and publish a Docker image CUSTOM
 
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
@@ -47,8 +47,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/chrom-ar/eliza-eth-global:latest
       
       # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. It increases supply chain security for people who consume the image. For more information, see [Using artifact attestations to establish provenance for builds](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
       - name: Generate artifact attestation
@@ -57,3 +56,10 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      
+      - name: Push image to GHCR
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/chrom-ar/eliza-eth-global:latest \
+            ghcr.io/chrom-ar/eliza-eth-global:latest

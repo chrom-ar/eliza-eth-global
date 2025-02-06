@@ -883,7 +883,7 @@ export async function initializeClients(
         if (slackClient) clients.slack = slackClient; // Use object property instead of push
     }
     if (clientTypes.includes("waku")) {
-        const wakuClient = WakuClientInterface.start(runtime);
+        const wakuClient = await WakuClientInterface.start(runtime);
         if (wakuClient) clients.waku = wakuClient; // Use object property instead of push
     }
 
