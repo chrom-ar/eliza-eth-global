@@ -663,6 +663,7 @@ export enum Clients {
     SIMSAI = "simsai",
     XMTP = "xmtp",
     DEVA = "deva",
+    WAKU = "waku"
 }
 
 export interface IAgentConfig {

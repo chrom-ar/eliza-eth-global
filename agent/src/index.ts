@@ -12,6 +12,7 @@ import { SlackClientInterface } from "@elizaos/client-slack";
 import { TelegramClientInterface } from "@elizaos/client-telegram";
 import { TelegramAccountClientInterface } from "@elizaos/client-telegram-account";
 import { TwitterClientInterface } from "@elizaos/client-twitter";
+import { WakuClientInterface } from "@elizaos/client-waku";
 import { AlexaClientInterface } from "@elizaos/client-alexa";
 import { MongoDBDatabaseAdapter } from "@elizaos/adapter-mongodb";
 import { DevaClientInterface } from "@elizaos/client-deva";
@@ -155,6 +156,8 @@ import { ankrPlugin } from "@elizaos/plugin-ankr";
 import { formPlugin } from "@elizaos/plugin-form";
 import { MongoClient } from "mongodb";
 import { quickIntelPlugin } from "@elizaos/plugin-quick-intel";
+
+import { chromaPlugin } from "@elizaos/plugin-chroma";
 
 import { trikonPlugin } from "@elizaos/plugin-trikon";
 import arbitragePlugin from "@elizaos/plugin-arbitrage";
@@ -879,6 +882,10 @@ export async function initializeClients(
         const slackClient = await SlackClientInterface.start(runtime);
         if (slackClient) clients.slack = slackClient; // Use object property instead of push
     }
+    if (clientTypes.includes("waku")) {
+        const wakuClient = WakuClientInterface.start(runtime);
+        if (wakuClient) clients.waku = wakuClient; // Use object property instead of push
+    }
 
     function determineClientType(client: Client): string {
         // Check if client has a direct type identifier
@@ -1016,6 +1023,7 @@ export async function createAgent(
         character,
         // character.plugins are handled when clients are added
         plugins: [
+            getSecret(character, "USE_CHROMA") ? chromaPlugin : null,
             parseBooleanFromText(getSecret(character, "BITMIND")) &&
             getSecret(character, "BITMIND_API_TOKEN")
                 ? bittensorPlugin

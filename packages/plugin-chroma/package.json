@@ -1,0 +1,36 @@
+{
+  "name": "@elizaos/plugin-chroma",
+  "version": "0.1.0",
+  "description": "Plugin for user query → structured intent transformation",
+  "main": "dist/index.js",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "@elizaos/source": "./src/index.ts",
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+
+  "scripts": {
+    "build": "tsup --format esm --dts",
+    "dev": "tsup --format esm --dts --watch",
+    "lint": "eslint --fix  --cache .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@elizaos/core": "workspace:*",
+    "@elizaos/client-waku": "workspace:*",
+    "@waku/sdk": "0.0.30-9f1d8ca.0",
+    "@coinbase/coinbase-sdk": "0.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "8.3.5",
+    "vitest": "2.1.4"
+  }
+}

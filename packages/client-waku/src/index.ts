@@ -8,10 +8,8 @@ import { WakuClient } from './client';
 export const WakuClientInterface: Client = {
   async start(runtime: IAgentRuntime) {
     if (this.instance) {
-      console.log("WAKU CON INSTANCE")
       return this.instance
     }
-      console.log("WAKU SIN INSTANCE")
     const wakuConfig: WakuConfig = await validateWakuConfig(runtime);
 
     // Create manager & plugin
