@@ -18,7 +18,8 @@ export const createWalletAction: Action = {
 
   validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = message.content.text.toLowerCase();
-    return text.includes('wallet') || text.includes('create') || text.includes('setup');
+    return text.includes('wallet') || text.includes('create') || text.includes('setup') ||
+      text.includes('yes');
   },
 
   handler: async (runtime: IAgentRuntime, message: Memory, state: State, _options: { [key: string]: unknown; }, callback: HandlerCallback): Promise<boolean> => {
@@ -65,6 +66,12 @@ export const createWalletAction: Action = {
       const wallet = await Wallet.create({ networkId });
       const walletId = wallet.getId();
       const walletAddress = await wallet.getDefaultAddress();
+
+      try {
+        // Fund the wallet TMP only testnet
+        await (await wallet.faucet()).wait();
+      } catch (error) {
+      }
 
       // Store wallet data in memory
       const newMemory: Memory = await walletManager.addEmbeddingToMemory({
