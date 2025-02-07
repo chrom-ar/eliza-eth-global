@@ -1,5 +1,6 @@
 import { Action, Memory, IAgentRuntime, MemoryManager, State, HandlerCallback, elizaLogger } from '@elizaos/core';
-import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
+import { Coinbase, Wallet, ExternalAddress } from '@coinbase/coinbase-sdk';
+import { CdpWalletProvider, CHAIN_ID_TO_NETWORK_ID } from '@coinbase/agentkit';
 
 export const confirmIntentAction: Action = {
   name: 'CONFIRM_INTENT',
@@ -25,12 +26,6 @@ export const confirmIntentAction: Action = {
       return false;
     }
 
-    Coinbase.configure({
-      apiKeyName:      runtime.getSetting("CHROMA_CDP_API_KEY_NAME"),
-      privateKey:      runtime.getSetting("CHROMA_CDP_API_KEY_PRIVATE_KEY"),
-      useServerSigner: true // By default we'll use the server signer
-    });
-
     // Initialize memory manager for wallets
     const walletManager = new MemoryManager({
       runtime,
@@ -39,14 +34,18 @@ export const confirmIntentAction: Action = {
 
     // Check if user already has a wallet
     // @ts-ignore
-    const existingWallets = await walletManager.getMemories({ roomId: message.roomId, count: 1 });
-    const existingWallet = existingWallets.find(m => m.content?.walletId);
+    const [existingWallet] = await walletManager.getMemories({ roomId: message.roomId, count: 1 });
 
     if (!existingWallet) {
       callback({ text: 'Sorry, We need a wallet to continue. Do you want me to create a wallet?' });
       return false;
     }
 
+    Coinbase.configure({
+      apiKeyName:      runtime.getSetting("CHROMA_CDP_API_KEY_NAME"),
+      privateKey:      runtime.getSetting("CHROMA_CDP_API_KEY_PRIVATE_KEY"),
+      useServerSigner: true // By default we'll use the server signer
+    });
 
     let wallet;
     try {
@@ -61,20 +60,89 @@ export const confirmIntentAction: Action = {
 
     await intentManager.removeMemory(intentMemory.id);
 
+    // Simple transfer
+    // @ts-ignore
+    if (intent.type === 'TRANSFER') {
+      try {
+        // @ts-ignore
+        const tx = await wallet.createTransfer({
+          // @ts-ignore
+          assetId:     intent.token.toLowerCase(),
+          // @ts-ignore
+          destination: intent.toAddress,
+          // @ts-ignore
+          amount:      intent.amount
+        });
+
+        await tx.wait();
+
+        callback({ text: `Transfer successful! \n${tx.model.transaction.transaction_link}` });
+        return false
+      } catch (error) {
+        console.log(error)
+        elizaLogger.error('Error creating transfer:', error);
+        callback({ text: 'Sorry, there was an error creating the transfer. Please try again.' });
+        return false;
+      }
+    }
+
+    // Excecute intent via wallet provider
+    const networkId = await wallet.getNetworkId()
+    const chainId = Object.keys(CHAIN_ID_TO_NETWORK_ID).find(
+      k => CHAIN_ID_TO_NETWORK_ID[k] === networkId
+    );
+    const walletAddr = (await wallet.getDefaultAddress()).id
+    // @ts-ignore
+    let provider = new CdpWalletProvider({
+      wallet,
+      address: walletAddr,
+      network: {
+        protocolFamily: "evm",
+        chainId,
+        networkId
+      }
+    });
+
     try {
-      const tx = await wallet.createTransfer({
-        assetId:     intent.token.toLowerCase(),
-        destination: intent.toAddress,
-        amount:      intent.amount
-      });
+        // @ts-ignore
+      const transactions = intent.transactions || []
+        // @ts-ignore
+      if (intent.transaction)
+        // @ts-ignore
+        transactions.push(intent.transaction)
 
-      await tx.wait();
+      const links = {}
 
-      callback({ text: `Transfer successful! \n${tx.model.transaction.transaction_link}` });
+      let i = 1;
+      for (let transaction of transactions) {
+        // tx = await provider.sendTransaction(intent.transaction);
+        // TMP: Default agent SDK fails with `provider.sendTransaction`
+        const preparedTransaction = await provider.prepareTransaction(
+          transaction.to,
+          transaction.value,
+          transaction.data
+        )
+        const signature = await provider.signTransaction({...preparedTransaction})
+        const signedPayload = await provider.addSignatureAndSerialize(preparedTransaction, signature)
+        const extAddr = new ExternalAddress( networkId, walletAddr)
+        const tx = await extAddr.broadcastExternalTransaction(signedPayload.slice(2))
+
+        // @ts-ignore
+        links[i] = tx.transaction_link
+        i += 1
+      }
+
+      let links_str;
+      for (const [i, link] of Object.entries(links)) {
+        links_str += `${i}: ${link}\n`
+      }
+
+      // @ts-ignore
+      callback({ text: `Transactions completed! \n${links_str}` });
       return false
     } catch (error) {
       console.log(error)
-      elizaLogger.error('Error creating transfer:', error);
+      elizaLogger.error('Error sending transactions:', error);
       callback({ text: 'Sorry, there was an error creating the transfer. Please try again.' });
       return false;
     }
