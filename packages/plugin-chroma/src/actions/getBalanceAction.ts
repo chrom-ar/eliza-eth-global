@@ -5,6 +5,7 @@ import { CdpWalletProvider } from '@coinbase/agentkit';
 
 import { getWalletProvider, getBalance } from '../utils';
 
+// For showcase purposes
 const EXTRA_BALANCES = {
   "base-sepolia":{
     ["Aave-USDC"]: "0xf53b60f4006cab2b3c4688ce41fd5362427a2a66"
@@ -13,12 +14,22 @@ const EXTRA_BALANCES = {
 
 export const getBalanceAction: Action = {
   name: 'GET_BALANCE',
-  similes: ['CHECK_BALANCE', 'VIEW_BALANCE', 'SHOW_BALANCE', "GET_WALLET", "SHOW_WALLET"],
+  similes: [
+    'CHECK_BALANCE',
+    'VIEW_BALANCE',
+    'SHOW_BALANCE',
+    'CHECK_BALANCES',
+    'VIEW_BALANCES',
+    'SHOW_BALANCES',
+    "GET_WALLET",
+    "SHOW_WALLET"
+  ],
   description: 'Gets ETH and USDC balance for the user\'s CDP wallet',
 
   validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = message.content.text.toLowerCase();
     return text.includes('balance') || text.includes('check') ||
+           text.includes('balances') || text.includes('amount') ||
            text.includes('how much') || text.includes('funds') ||
            (text.includes('wallet') && text.includes('show'));
   },
