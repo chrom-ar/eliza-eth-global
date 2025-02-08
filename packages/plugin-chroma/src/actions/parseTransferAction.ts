@@ -81,7 +81,8 @@ export const parseTransferAction: Action = {
         source: message.content?.source,
         intent: {
           ...intentData,
-          status: 'pending'
+          status: 'pending',
+          type: 'TRANSFER'
         }
       }
     });

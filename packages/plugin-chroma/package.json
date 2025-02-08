@@ -26,7 +26,8 @@
     "@elizaos/core": "workspace:*",
     "@elizaos/client-waku": "workspace:*",
     "@waku/sdk": "0.0.30-9f1d8ca.0",
-    "@coinbase/coinbase-sdk": "0.17.0"
+    "@coinbase/coinbase-sdk": "0.17.0",
+    "@coinbase/agentkit": "0.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
