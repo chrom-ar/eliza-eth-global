@@ -104,7 +104,7 @@ export const configureCDP = async (runtime: IAgentRuntime) => {
   // Configure Coinbase SDK
   Coinbase.configure({
     apiKeyName: runtime.getSetting("CHROMA_CDP_API_KEY_NAME"),
-    privateKey: runtime.getSetting("CHROMA_CDP_API_KEY_PRIVATE_KEY"),
+    privateKey: runtime.getSetting("CHROMA_CDP_API_KEY_PRIVATE_KEY").replace(/\\n/g, "\n"),
     useServerSigner: true
   });
 }
