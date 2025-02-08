@@ -1,9 +1,7 @@
 import { Action, Memory, IAgentRuntime, HandlerCallback, State, MemoryManager } from '@elizaos/core';
-import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { elizaLogger } from '@elizaos/core';
-import { CdpWalletProvider } from '@coinbase/agentkit';
 
-import { getWalletProvider, getBalance } from '../utils';
+import { getWalletAndProvider, getBalanceFor } from '../utils';
 
 // For showcase purposes
 const EXTRA_BALANCES = {
@@ -30,18 +28,13 @@ export const getBalanceAction: Action = {
     const text = message.content.text.toLowerCase();
     return text.includes('balance') || text.includes('check') ||
            text.includes('balances') || text.includes('amount') ||
+           text.includes('money') ||
            text.includes('how much') || text.includes('funds') ||
            (text.includes('wallet') && text.includes('show'));
   },
 
   handler: async (runtime: IAgentRuntime, message: Memory, _state: State, _options: { [key: string]: unknown; }, callback: HandlerCallback): Promise<boolean> => {
     try {
-      // Configure Coinbase SDK
-      Coinbase.configure({
-        apiKeyName: runtime.getSetting("CHROMA_CDP_API_KEY_NAME"),
-        privateKey: runtime.getSetting("CHROMA_CDP_API_KEY_PRIVATE_KEY"),
-        useServerSigner: true
-      });
 
       // Initialize memory manager for wallets
       const walletManager = new MemoryManager({
@@ -51,8 +44,7 @@ export const getBalanceAction: Action = {
 
       // Get user's wallet from memory
       // @ts-ignore
-      const existingWallets = await walletManager.getMemories({ roomId: message.roomId, count: 1 });
-      const existingWallet = existingWallets.find(m => m.content?.walletId);
+      const [existingWallet] = await walletManager.getMemories({ roomId: message.roomId, count: 1 });
 
       if (!existingWallet) {
         callback({
@@ -63,38 +55,27 @@ export const getBalanceAction: Action = {
       }
 
       // Fetch the wallet
-      const wallet = await Wallet.fetch(existingWallet.content.walletId as string);
+      const [wallet, provider] = await getWalletAndProvider(runtime, existingWallet.content.walletId);
       // @ts-ignore
       const walletAddress = (await wallet.getDefaultAddress()).id;
-
       const balances = await wallet.listBalances();
 
 
       // Format response
       let balanceText = `Wallet Address: ${walletAddress}\n`
       for (const [k, v] of balances) {
-        balanceText += `${k.toUpperCase()}: ${v}\n`;
+        balanceText += `- ${v} ${k.toUpperCase()}\n`;
       }
 
-      const provider = await getWalletProvider(wallet);
-
       for (const [k, v] of Object.entries(EXTRA_BALANCES[wallet.getNetworkId()])) {
-        const balance = await getBalance(provider, v, true);
+        const balance = await getBalanceFor(provider, v, true);
 
         if (balance && parseFloat(balance) > 0) {
-          balanceText += `${k}: ${balance}\n`;
+          balanceText += `- ${balance} ${k}\n`;
         }
       }
 
-      callback({
-        text: balanceText,
-        // content: {
-        //   address: walletAddress,
-        //   ethBalance: ethBalance,
-        //   usdcBalance: usdcBalance,
-        //   network: existingWallet.content.network
-        // }
-      });
+      callback({ text: balanceText });
 
       return true;
     } catch (error) {

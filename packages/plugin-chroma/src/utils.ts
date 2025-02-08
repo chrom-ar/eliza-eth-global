@@ -1,3 +1,4 @@
+import { IAgentRuntime } from '@elizaos/core';
 import { Coinbase, Wallet, ExternalAddress } from '@coinbase/coinbase-sdk';
 import { CdpWalletProvider, CHAIN_ID_TO_NETWORK_ID } from '@coinbase/agentkit';
 
@@ -77,7 +78,7 @@ export const sendTransaction = async (provider: CdpWalletProvider, transaction: 
   return tx
 }
 
-export const getBalance = async (provider: CdpWalletProvider, address: string, humanize: boolean = false): Promise<string | BigInt> => {
+export const getBalanceFor = async (provider: CdpWalletProvider, address: string, humanize: boolean = false): Promise<string | BigInt> => {
   const [bal, decimals] = (await Promise.all([
     provider.readContract({
       address: address as `0x${string}`,
@@ -97,4 +98,28 @@ export const getBalance = async (provider: CdpWalletProvider, address: string, h
 
   // @ts-ignore
   return humanize ? (bal / 10 ** decimals).toFixed(6) : bal
+}
+
+export const configureCDP = async (runtime: IAgentRuntime) => {
+  // Configure Coinbase SDK
+  Coinbase.configure({
+    apiKeyName: runtime.getSetting("CHROMA_CDP_API_KEY_NAME"),
+    privateKey: runtime.getSetting("CHROMA_CDP_API_KEY_PRIVATE_KEY"),
+    useServerSigner: true
+  });
+}
+
+export const getWalletAndProvider = async (runtime: IAgentRuntime, walletId: string): Promise<[Wallet, CdpWalletProvider]> => {
+  await configureCDP(runtime)
+
+  const wallet = await Wallet.fetch(walletId);
+  const provider = await getWalletProvider(wallet)
+
+  return [wallet, provider]
+}
+
+export const createWallet = async (runtime: IAgentRuntime): Promise<Wallet> => {
+  await configureCDP(runtime)
+
+  return await Wallet.create();
 }

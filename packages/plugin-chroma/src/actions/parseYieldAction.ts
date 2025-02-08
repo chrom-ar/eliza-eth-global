@@ -70,7 +70,7 @@ export const parseYieldAction: Action = {
       return false;
     }
     // @ts-ignore
-    intentData.recipientAddress = existingWallet.content.address.id; // model kinda sucks putting the wallet
+    intentData.recipientAddress = existingWallet.content.address; // model kinda sucks putting the wallet
 
     const { amount, fromToken, fromChain, recipientAddress } = intentData;
     const responseText = `I've created a yield intent for ${amount} ${fromToken} to ${recipientAddress} on ${fromChain}. \n\n Broadcasted the intent to receive the best quotas.\n\n`

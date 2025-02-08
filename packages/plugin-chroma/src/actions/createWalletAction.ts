@@ -1,6 +1,7 @@
 import { Action, Memory, IAgentRuntime, HandlerCallback, State, MemoryManager } from '@elizaos/core';
-import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { elizaLogger } from '@elizaos/core';
+
+import { getWalletAndProvider, createWallet } from '../utils';
 
 const contextTemplate = `# Recent Messages
 {{recentMessages}}
@@ -24,12 +25,6 @@ export const createWalletAction: Action = {
 
   handler: async (runtime: IAgentRuntime, message: Memory, state: State, _options: { [key: string]: unknown; }, callback: HandlerCallback): Promise<boolean> => {
     try {
-      Coinbase.configure({
-        apiKeyName:      runtime.getSetting("CHROMA_CDP_API_KEY_NAME"),
-        privateKey:      runtime.getSetting("CHROMA_CDP_API_KEY_PRIVATE_KEY"),
-        useServerSigner: true // By default we'll use the server signer
-      });
-
       // Initialize memory manager for wallets
       const walletManager = new MemoryManager({
         runtime,
@@ -38,15 +33,15 @@ export const createWalletAction: Action = {
 
       // Check if user already has a wallet
       // @ts-ignore
-      const existingWallets = await walletManager.getMemories({ roomId: message.roomId, count: 1 });
-      const existingWallet = existingWallets.find(m => m.content?.walletId);
+      const [existingWallet] = await walletManager.getMemories({ roomId: message.roomId, count: 1 });
 
+      let wallet;
       if (existingWallet) {
         // Wallet exists, try to import it
         try {
-          const wallet = await Wallet.fetch(existingWallet.content.walletId as string);
+          [wallet] = await getWalletAndProvider(runtime, existingWallet.content.walletId as string);
 
-          const walletAddress = await wallet.getDefaultAddress();
+          const walletAddress = (await wallet.getDefaultAddress()).id;
           callback({
             text: `Found your existing wallet with address: ${walletAddress}`,
             walletAddress,
@@ -57,15 +52,20 @@ export const createWalletAction: Action = {
         } catch (error) {
           console.log(error)
           elizaLogger.error('Error importing existing wallet:', error);
-          // If import fails, continue to create new wallet
+
+          callback({
+            text: `Error importing existing wallet: ${error}`,
+          });
+
+          return true;
         }
       }
 
       // Create new wallet
-      const networkId = runtime.getSetting("CDP_NETWORK_ID") || "base-sepolia";
-      const wallet = await Wallet.create({ networkId });
+      wallet = await createWallet(runtime);
       const walletId = wallet.getId();
-      const walletAddress = await wallet.getDefaultAddress();
+      const walletAddress = (await wallet.getDefaultAddress()).id;
+      const networkId = wallet.getNetworkId()
 
       try {
         // Fund the wallet TMP only testnet

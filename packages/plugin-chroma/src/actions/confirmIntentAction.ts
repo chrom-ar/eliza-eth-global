@@ -1,8 +1,6 @@
 import { Action, Memory, IAgentRuntime, MemoryManager, State, HandlerCallback, elizaLogger } from '@elizaos/core';
-import { Coinbase, Wallet, ExternalAddress } from '@coinbase/coinbase-sdk';
-import { CdpWalletProvider, CHAIN_ID_TO_NETWORK_ID } from '@coinbase/agentkit';
 
-import { getWalletProvider, sendTransaction } from '../utils';
+import { getWalletAndProvider, sendTransaction } from '../utils';
 
 export const confirmIntentAction: Action = {
   name: 'CONFIRM_INTENT',
@@ -49,15 +47,9 @@ export const confirmIntentAction: Action = {
       return false;
     }
 
-    Coinbase.configure({
-      apiKeyName:      runtime.getSetting("CHROMA_CDP_API_KEY_NAME"),
-      privateKey:      runtime.getSetting("CHROMA_CDP_API_KEY_PRIVATE_KEY"),
-      useServerSigner: true // By default we'll use the server signer
-    });
-
-    let wallet;
+    let wallet, provider;
     try {
-      wallet = await Wallet.fetch(existingWallet.content.walletId as string);
+      [wallet, provider] = await getWalletAndProvider(runtime, existingWallet.content.walletId as string);
     } catch (error) {
       console.log(error)
       elizaLogger.error('Error importing existing wallet:', error);
@@ -93,16 +85,16 @@ export const confirmIntentAction: Action = {
     }
 
     // Excecute proposal via wallet provider
-    const provider = await getWalletProvider(wallet)
     let links = ''
 
     try {
         // @ts-ignore
       const transactions = proposal.transactions || []
         // @ts-ignore
-      if (proposal.transaction)
+      if (proposal.transaction) {
         // @ts-ignore
         transactions.push(proposal.transaction)
+      }
 
       let i = 0
       for (let transaction of transactions) {
