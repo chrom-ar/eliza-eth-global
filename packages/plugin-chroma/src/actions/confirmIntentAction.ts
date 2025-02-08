@@ -2,6 +2,8 @@ import { Action, Memory, IAgentRuntime, MemoryManager, State, HandlerCallback, e
 import { Coinbase, Wallet, ExternalAddress } from '@coinbase/coinbase-sdk';
 import { CdpWalletProvider, CHAIN_ID_TO_NETWORK_ID } from '@coinbase/agentkit';
 
+import { getWalletProvider, sendTransaction } from '../utils';
+
 export const confirmIntentAction: Action = {
   name: 'CONFIRM_INTENT',
   similes: ['INTENT_CONFIRMATION', 'CONFIRM_SWAP'],
@@ -21,8 +23,14 @@ export const confirmIntentAction: Action = {
       unique: true
     });
 
-    if (typeof intentMemory?.content?.intent !== 'object') {
+    const intent = intentMemory.content.intent;
+    const proposal = intentMemory.content.proposal;
+
+    if (intent && typeof intent !== 'object') {
       callback({ text: 'Sorry, I could not find a pending intent to confirm. Please create a new request.' });
+      return false;
+    } else if (proposal && typeof proposal !== 'object') {
+      callback({ text: 'Sorry, I could not find a pending proposal to confirm. Please create a new request.' });
       return false;
     }
 
@@ -56,13 +64,11 @@ export const confirmIntentAction: Action = {
       // If import fails, continue to create new wallet
     }
 
-    const intent = intentMemory.content.intent;
-
     await intentManager.removeMemory(intentMemory.id);
 
     // Simple transfer
     // @ts-ignore
-    if (intent.type === 'TRANSFER') {
+    if (intent?.type === 'TRANSFER') {
       try {
         // @ts-ignore
         const tx = await wallet.createTransfer({
@@ -86,64 +92,41 @@ export const confirmIntentAction: Action = {
       }
     }
 
-    // Excecute intent via wallet provider
-    const networkId = await wallet.getNetworkId()
-    const chainId = Object.keys(CHAIN_ID_TO_NETWORK_ID).find(
-      k => CHAIN_ID_TO_NETWORK_ID[k] === networkId
-    );
-    const walletAddr = (await wallet.getDefaultAddress()).id
-    // @ts-ignore
-    let provider = new CdpWalletProvider({
-      wallet,
-      address: walletAddr,
-      network: {
-        protocolFamily: "evm",
-        chainId,
-        networkId
-      }
-    });
+    // Excecute proposal via wallet provider
+    const provider = await getWalletProvider(wallet)
+    let links = ''
 
     try {
         // @ts-ignore
-      const transactions = intent.transactions || []
+      const transactions = proposal.transactions || []
         // @ts-ignore
-      if (intent.transaction)
+      if (proposal.transaction)
         // @ts-ignore
-        transactions.push(intent.transaction)
+        transactions.push(proposal.transaction)
 
-      const links = {}
-
-      let i = 1;
+      let i = 0
       for (let transaction of transactions) {
-        // tx = await provider.sendTransaction(intent.transaction);
+        // tx = await provider.sendTransaction(proposal.transaction);
         // TMP: Default agent SDK fails with `provider.sendTransaction`
-        const preparedTransaction = await provider.prepareTransaction(
-          transaction.to,
-          transaction.value,
-          transaction.data
-        )
-        const signature = await provider.signTransaction({...preparedTransaction})
-        const signedPayload = await provider.addSignatureAndSerialize(preparedTransaction, signature)
-        const extAddr = new ExternalAddress( networkId, walletAddr)
-        const tx = await extAddr.broadcastExternalTransaction(signedPayload.slice(2))
+        const tx = await sendTransaction(provider, transaction, true);
 
         // @ts-ignore
-        links[i] = tx.transaction_link
+        links += `- ${proposal.titles[i]}: ${tx.transactionLink}\n`
         i += 1
       }
 
-      let links_str;
-      for (const [i, link] of Object.entries(links)) {
-        links_str += `${i}: ${link}\n`
-      }
-
       // @ts-ignore
-      callback({ text: `Transactions completed! \n${links_str}` });
+      callback({ text: `Transactions completed! \n${links}` });
       return false
     } catch (error) {
       console.log(error)
       elizaLogger.error('Error sending transactions:', error);
-      callback({ text: 'Sorry, there was an error creating the transfer. Please try again.' });
+      if (links.length > 0) {
+        callback({ text: 'Sorry, a few transactions succeeded but not all of them. Confirmed transactions: \n' + links });
+      } else {
+        callback({ text: 'Sorry, there was an error creating the transaction. Please try again.' });
+      }
+
       return false;
     }
   },
@@ -157,7 +140,7 @@ export const confirmIntentAction: Action = {
       {
         user: '{{user2}}',
         content: {
-          text: 'Sending your intent...',
+          text: 'Sending your proposal...',
           action: 'CONFIRM_INTENT'
         }
       }

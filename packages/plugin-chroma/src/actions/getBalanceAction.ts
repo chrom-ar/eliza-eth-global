@@ -1,6 +1,15 @@
 import { Action, Memory, IAgentRuntime, HandlerCallback, State, MemoryManager } from '@elizaos/core';
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { elizaLogger } from '@elizaos/core';
+import { CdpWalletProvider } from '@coinbase/agentkit';
+
+import { getWalletProvider, getBalance } from '../utils';
+
+const EXTRA_BALANCES = {
+  "base-sepolia":{
+    ["Aave-USDC"]: "0xf53b60f4006cab2b3c4688ce41fd5362427a2a66"
+  }
+}
 
 export const getBalanceAction: Action = {
   name: 'GET_BALANCE',
@@ -9,8 +18,8 @@ export const getBalanceAction: Action = {
 
   validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = message.content.text.toLowerCase();
-    return text.includes('balance') || text.includes('check') || 
-           text.includes('how much') || text.includes('funds') || 
+    return text.includes('balance') || text.includes('check') ||
+           text.includes('how much') || text.includes('funds') ||
            (text.includes('wallet') && text.includes('show'));
   },
 
@@ -44,29 +53,36 @@ export const getBalanceAction: Action = {
 
       // Fetch the wallet
       const wallet = await Wallet.fetch(existingWallet.content.walletId as string);
+      // @ts-ignore
       const walletAddress = (await wallet.getDefaultAddress()).id;
 
-      // Get ETH balance
-      const ethBalance = await wallet.getBalance(Coinbase.assets.Eth);
-      // const formattedEthBalance = Number(ethBalance) / 1e18; // Convert from wei to ETH
+      const balances = await wallet.listBalances();
 
-      // Get USDC balance
-      const usdcBalance = await wallet.getBalance(Coinbase.assets.Usdc);
-      // const formattedUsdcBalance = Number(usdcBalance) / 1e6; // Convert from smallest unit to USDC
 
       // Format response
-      const balanceText = `Wallet Address: ${walletAddress}\n` +
-                         `ETH Balance: ${ethBalance} ETH\n` +
-                         `USDC Balance: ${usdcBalance} USDC`;
+      let balanceText = `Wallet Address: ${walletAddress}\n`
+      for (const [k, v] of balances) {
+        balanceText += `${k.toUpperCase()}: ${v}\n`;
+      }
+
+      const provider = await getWalletProvider(wallet);
+
+      for (const [k, v] of Object.entries(EXTRA_BALANCES[wallet.getNetworkId()])) {
+        const balance = await getBalance(provider, v, true);
+
+        if (balance && parseFloat(balance) > 0) {
+          balanceText += `${k}: ${balance}\n`;
+        }
+      }
 
       callback({
         text: balanceText,
-        content: {
-          address: walletAddress,
-          ethBalance: ethBalance,
-          usdcBalance: usdcBalance,
-          network: existingWallet.content.network
-        }
+        // content: {
+        //   address: walletAddress,
+        //   ethBalance: ethBalance,
+        //   usdcBalance: usdcBalance,
+        //   network: existingWallet.content.network
+        // }
       });
 
       return true;
@@ -109,4 +125,4 @@ export const getBalanceAction: Action = {
       }
     ]
   ]
-}; 
+};

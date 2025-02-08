@@ -43,7 +43,7 @@ export class SolverService extends Service {
     this.waku = runtime.clients?.waku || await WakuClientInterface.start(runtime);
 
     // Empty string for default topic
-    this.waku.subscribe('', async (event) => {
+    await this.waku.subscribe('', async (event) => {
       const response = await buildResponse(event, this.config);
 
       if (!response) {

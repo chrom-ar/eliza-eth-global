@@ -1,5 +1,5 @@
 import { elizaLogger } from '@elizaos/core';
-import { encodeFunctionData, parseEther } from 'viem';
+import { encodeFunctionData, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 
@@ -140,8 +140,11 @@ async function _validateAndBuildYield(message: GeneralMessage): Promise<object> 
     return null;
   }
 
+  fromChain = fromChain.toUpperCase();
+  fromToken = fromToken.toUpperCase();
+
   const tokenAddr   = TOKENS[fromChain][fromToken];
-  const tokenAmount = parseEther(amount, TOKEN_DECIMALS[fromChain][fromToken]).toString();
+  const tokenAmount = parseUnits(amount, TOKEN_DECIMALS[fromChain][fromToken]).toString();
 
   // Aave v3 contract addresses for Base Sepolia
   // Encode supply transaction
@@ -168,18 +171,28 @@ async function _validateAndBuildYield(message: GeneralMessage): Promise<object> 
 
   const aavePool = AAVE_POOL[fromChain][fromToken];
 
-  return { transactions: [
-    { // approve
-      to: tokenAddr,
-      value: 0,
-      data: encodeFunctionData({abi, functionName: "approve", args: [aavePool, tokenAmount]})
-    },
-    { // supply
-      to: aavePool,
-      value: 0,
-      data: encodeFunctionData({abi, functionName: "supply", args: [tokenAddr, tokenAmount, recipientAddress, 0]})
-    }
-  ]}
+  return {
+    description: `Deposit ${fromToken} in Aave V3 on ${fromChain}`,
+    titles: [
+      'Approve', 'Supply'
+    ],
+    calls: [
+      `Approve ${amount}${fromToken} to be deposited in AavePool`,
+      `Supply ${amount}${fromToken} in AavePool. ${recipientAddress} will receive the a${fromToken} tokens`
+    ],
+    transactions: [
+      { // approve
+        to: tokenAddr,
+        value: 0,
+        data: encodeFunctionData({abi, functionName: "approve", args: [aavePool, tokenAmount]})
+      },
+      { // supply
+        to: aavePool,
+        value: 0,
+        data: encodeFunctionData({abi, functionName: "supply", args: [tokenAddr, tokenAmount, recipientAddress, 0]})
+      }
+    ]
+  }
 }
 
 
@@ -194,7 +207,7 @@ async function _buildTransfer(fromChain: string, fromToken: string, amount: stri
 
 function _buildEvmTransfer(fromChain: string, fromToken: string, amount: string, recipientAddress: string): object {
   const tokenAddr = TOKENS[fromChain][fromToken];
-  const tokenAmount = parseEther(amount, TOKEN_DECIMALS[fromChain][fromToken]).toString();
+  const tokenAmount = parseUnits(amount, TOKEN_DECIMALS[fromChain][fromToken]).toString();
 
   const erc20Abi = [
     {
