@@ -2391,8 +2391,8 @@ importers:
   packages/plugin-chroma:
     dependencies:
       '@coinbase/agentkit':
-        specifier: 0.1.1
-        version: 0.1.1(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@6.0.5)
+        specifier: 0.1.2
+        version: 0.1.2(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@6.0.5)
       '@coinbase/coinbase-sdk':
         specifier: 0.17.0
         version: 0.17.0(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@6.0.5)(zod@3.24.1)
@@ -6588,8 +6588,8 @@ packages:
   '@coinbase-samples/advanced-sdk-ts@file:packages/plugin-coinbase/advanced-sdk-ts':
     resolution: {directory: packages/plugin-coinbase/advanced-sdk-ts, type: directory}
 
-  '@coinbase/agentkit@0.1.1':
-    resolution: {integrity: sha512-jEI9Zif0NEhGHgTCm7KkWpU8XFJegETKRf3/iYWLtdqVQonbLwEgbGgGHH6FuRX8eWQUlccMxlBFv8hnDBBLmg==}
+  '@coinbase/agentkit@0.1.2':
+    resolution: {integrity: sha512-vG7crTvtkG/dovng5vSuOgHam7KXeirTPi3yzPbVyV+Xi3toGxB51ZYOXPiqp31tKI9avm2TSNuv7nCnPQEAVg==}
 
   '@coinbase/cdp-agentkit-core@0.0.10':
     resolution: {integrity: sha512-EFTaCkCd1445B4jq3LxVJaqw+r4BrwyjTAOoEabKrv9BycCPgS7fPRLuuugmnJRbSEtlG90NbsRZ7B6YkQRJ/g==}
@@ -31605,7 +31605,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@coinbase/agentkit@0.1.1(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@6.0.5)':
+  '@coinbase/agentkit@0.1.2(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@6.0.5)':
     dependencies:
       '@coinbase/coinbase-sdk': 0.17.0(bufferutil@4.0.9)(typescript@5.7.3)(utf-8-validate@6.0.5)(zod@3.23.8)
       md5: 2.3.0
@@ -48613,7 +48613,7 @@ snapshots:
     dependencies:
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/safe-json': 1.0.2
-      cross-fetch: 3.1.8(encoding@0.1.13)
+      cross-fetch: 3.2.0(encoding@0.1.13)
       events: 3.3.0
     transitivePeerDependencies:
       - encoding
