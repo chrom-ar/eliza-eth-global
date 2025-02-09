@@ -35,5 +35,8 @@ export default defineConfig(({ mode }) => {
                 "@": "/src",
             },
         },
+        server: {
+            allowedHosts: ["demo.chrom.ar"]
+        },
     };
 });
